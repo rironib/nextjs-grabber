@@ -1,61 +1,86 @@
 "use client";
 
-import { Alert, Avatar, Button, Image, Input } from "@heroui/react";
-import { useState } from "react";
+import {
+  Alert,
+  Avatar,
+  Button,
+  Image,
+  Input,
+  NumberInput,
+  Progress,
+} from "@heroui/react";
+import { useEffect, useRef, useState } from "react";
 
 export default function HomePage() {
   const [url, setUrl] = useState("");
+  const [timer, setTimer] = useState(15); // default 15 seconds
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearInterval(intervalRef.current); // cleanup on unmount
+  }, []);
 
   const handleGenerate = async () => {
-    const trimmedDomain = url.trim().toLowerCase();
-
-    if (!trimmedDomain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmedDomain)) {
-      setError("Please enter a valid domain name (e.g. google.com).");
+    let domain = "";
+    try {
+      const input = url.trim();
+      const normalized = input.startsWith("http") ? input : `https://${input}`;
+      const parsed = new URL(normalized);
+      domain = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    } catch (e) {
+      setError("Please enter a valid URL or domain.");
       return;
     }
-
-    const fullUrl = `https://${trimmedDomain}`;
 
     setLoading(true);
     setError(null);
     setResult(null);
+    setProgress(0);
+
+    const duration = Number(timer) || 15;
+    const updateInterval = 100;
+    const increment = 100 / ((duration * 1000) / updateInterval);
+
+    intervalRef.current = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + increment;
+        if (next >= 100) {
+          clearInterval(intervalRef.current);
+          return 100;
+        }
+        return next;
+      });
+    }, updateInterval);
 
     try {
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: fullUrl }), // Sending full URL
+        body: JSON.stringify({ domain, timer: duration }),
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || "Something went wrong");
 
       setResult(data);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+      clearInterval(intervalRef.current);
+      setProgress(100);
     }
-
-    setLoading(false);
   };
 
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      const cleaned = text
-        .trim()
-        .toLowerCase()
-        .replace(/^https?:\/\//, "")
-        .replace(/\/$/, "");
-
-      if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(cleaned)) {
-        setUrl(cleaned);
-      } else {
-        setError("Clipboard content is not a valid domain.");
-      }
+      setUrl(text);
+      setError(null);
     } catch (err) {
       setError("Failed to read clipboard: " + err.message);
     }
@@ -65,13 +90,22 @@ export default function HomePage() {
     setUrl("");
     setResult(null);
     setError(null);
+    setProgress(0);
+    setLoading(false);
+    clearInterval(intervalRef.current);
   };
 
   return (
-    <main className="max-w-3xl mx-auto">
-      <div className="w-full flex items-center justify-center min-h-[90dvh]">
+    <main className="mx-auto max-w-3xl">
+      <div className="flex min-h-[90dvh] w-full items-center justify-center">
         <div className="w-full p-4 lg:p-8">
-          <div className="max-w-2xl w-full flex flex-col gap-4 bg-default-50 px-4 lg:px-6 py-12 rounded-xl">
+          {error && (
+            <div className="flex w-full max-w-2xl items-center justify-center pb-3 lg:pb-6">
+              <Alert color="warning" description={error} />
+            </div>
+          )}
+
+          <div className="flex w-full max-w-2xl flex-col gap-4 rounded-xl bg-default-50 px-4 py-12 lg:px-6">
             <Input
               isRequired
               isClearable
@@ -82,10 +116,20 @@ export default function HomePage() {
               type="text"
               variant="bordered"
               label="Website Link"
-              placeholder="Enter website link"
+              placeholder="e.g. themoviedb.org or https://www.example.com/page"
             />
-
-            <div className="grid lg:grid-cols-3 gap-4">
+            <NumberInput
+              isRequired
+              isClearable
+              fullWidth
+              size="lg"
+              value={timer}
+              onChange={(val) => setTimer(val)}
+              variant="bordered"
+              label="Timeout (seconds)"
+              placeholder="Enter timeout in seconds"
+            />
+            <div className="grid gap-4 lg:grid-cols-3">
               <Button
                 fullWidth
                 isLoading={loading}
@@ -107,16 +151,17 @@ export default function HomePage() {
                 Reset
               </Button>
             </div>
+            {loading && (
+              <Progress
+                value={progress}
+                color="primary"
+                aria-label="Loading..."
+              />
+            )}
           </div>
 
-          {error && (
-            <div className="max-w-2xl w-full flex items-center justify-center py-6">
-              <Alert color="warning" description={error} />
-            </div>
-          )}
-
           {result && (
-            <div className="max-w-2xl w-full flex flex-col gap-3 lg:gap-6 items-center px-4 py-6 mt-6 rounded-xl bg-default-50">
+            <div className="mt-6 flex w-full max-w-2xl flex-col items-center gap-3 rounded-xl bg-default-50 px-4 py-6 lg:gap-6">
               <Avatar
                 isBordered
                 size="lg"
@@ -126,7 +171,7 @@ export default function HomePage() {
               <Image
                 alt="Screenshot"
                 src={result.screenshot}
-                className="border-2 border-default-100 w-full h-auto bg-default-50 max-w-2xl"
+                className="h-auto w-full max-w-2xl border-2 border-default-100 bg-default-50"
               />
             </div>
           )}
