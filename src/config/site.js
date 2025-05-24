@@ -1,6 +1,6 @@
 export const siteConfig = {
-    name: "Next.js + HeroUI + TailwindCSS",
-    description: "Make beautiful websites regardless of your design experience."
+  name: "Next.JS Grabber",
+  description: "Grab websites screenshot and favicon.",
 };
 
 export const SiteConfig = siteConfig;

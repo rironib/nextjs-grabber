@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, Avatar, Button, Image, Input } from "@heroui/react";
 import { useState } from "react";
 
 export default function HomePage() {
@@ -33,51 +34,97 @@ export default function HomePage() {
     setLoading(false);
   };
 
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.startsWith("http://") || text.startsWith("https://")) {
+        setUrl(text);
+      } else {
+        setError("Clipboard content is not a valid URL.");
+      }
+    } catch (err) {
+      setError("Failed to read clipboard: " + err.message);
+    }
+  };
+
+  const handleReset = () => {
+    setUrl("");
+    setResult(null);
+    setError(null);
+  };
+
   return (
-    <main className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">
-        Website Screenshot & Favicon Grabber
-      </h1>
+    <main className="max-w-3xl mx-auto">
+      <div className="w-full flex items-center justify-center min-h-[90dvh]">
+        <div className="w-full p-4 lg:p-8">
+          <form onSubmit={handleSubmit}>
+            <div className="max-w-2xl w-full flex flex-col gap-4 bg-default-50 px-4 lg:px-6 py-12 rounded-xl">
+              <Input
+                isRequired
+                isClearable
+                fullWidth
+                size="lg"
+                onChange={(e) => setUrl(e.target.value)}
+                type="text"
+                variant="bordered"
+                label="Website Link"
+                placeholder="Enter website like"
+                defaultValue={url}
+              />
 
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-6">
-        <input
-          type="url"
-          placeholder="https://example.com"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          required
-          className="flex-grow p-2 border rounded"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          {loading ? "Processing..." : "Submit"}
-        </button>
-      </form>
+              <div className="grid lg:grid-cols-3 gap-4">
+                <Button
+                  fullWidth
+                  isLoading={loading}
+                  type="submit"
+                  color="primary"
+                  size="lg"
+                >
+                  Generate
+                </Button>
+                <Button
+                  fullWidth
+                  onPress={handlePaste}
+                  color="secondary"
+                  size="lg"
+                >
+                  Paste
+                </Button>
+                <Button
+                  fullWidth
+                  onPress={handleReset}
+                  color="danger"
+                  size="lg"
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </form>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+          {error && (
+            <div className="max-w-2xl w-full flex items-center justify-center py-6">
+              <Alert color="warning" description={error} />
+            </div>
+          )}
 
-      {result && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="font-semibold">Screenshot</h2>
-            <img
-              src={result.screenshot}
-              alt="Website Screenshot"
-              className="rounded border w-full max-w-[100%]"
-            />
-          </div>
-          <div>
-            <h2 className="font-semibold">Favicon</h2>
-            <img
-              src={result.favicon}
-              alt="Favicon"
-              className="w-16 h-16 border rounded"
-            />
-          </div>
+          {result && (
+            <div className="max-w-2xl w-full flex flex-col gap-3 lg:gap-6 items-center px-4 py-6 mt-6 rounded-xl bg-default-50">
+              <Avatar
+                isBordered
+                size="lg"
+                src={result.favicon}
+                name="Favicon"
+              />
+              <Image
+                alt="Screenshot"
+                src={result.screenshot}
+                className="border-2 border-default-100 w-full h-auto bg-default-50 max-w-2xl"
+              />
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </main>
   );
 }
