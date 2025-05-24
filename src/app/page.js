@@ -10,10 +10,14 @@ export default function HomePage() {
   const [error, setError] = useState(null);
 
   const handleGenerate = async () => {
-    if (!url) {
-      setError("Please enter a valid URL.");
+    const trimmedDomain = url.trim().toLowerCase();
+
+    if (!trimmedDomain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmedDomain)) {
+      setError("Please enter a valid domain name (e.g. google.com).");
       return;
     }
+
+    const fullUrl = `https://${trimmedDomain}`;
 
     setLoading(true);
     setError(null);
@@ -23,7 +27,7 @@ export default function HomePage() {
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: fullUrl }), // Sending full URL
       });
 
       const data = await res.json();
@@ -41,10 +45,16 @@ export default function HomePage() {
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text.startsWith("http://") || text.startsWith("https://")) {
-        setUrl(text);
+      const cleaned = text
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, "")
+        .replace(/\/$/, "");
+
+      if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(cleaned)) {
+        setUrl(cleaned);
       } else {
-        setError("Clipboard content is not a valid URL.");
+        setError("Clipboard content is not a valid domain.");
       }
     } catch (err) {
       setError("Failed to read clipboard: " + err.message);
