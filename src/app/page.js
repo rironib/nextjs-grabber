@@ -9,8 +9,12 @@ export default function HomePage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleGenerate = async () => {
+    if (!url) {
+      setError("Please enter a valid URL.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -57,50 +61,43 @@ export default function HomePage() {
     <main className="max-w-3xl mx-auto">
       <div className="w-full flex items-center justify-center min-h-[90dvh]">
         <div className="w-full p-4 lg:p-8">
-          <form onSubmit={handleSubmit}>
-            <div className="max-w-2xl w-full flex flex-col gap-4 bg-default-50 px-4 lg:px-6 py-12 rounded-xl">
-              <Input
-                isRequired
-                isClearable
-                fullWidth
-                size="lg"
-                onChange={(e) => setUrl(e.target.value)}
-                type="text"
-                variant="bordered"
-                label="Website Link"
-                placeholder="Enter website like"
-                defaultValue={url}
-              />
+          <div className="max-w-2xl w-full flex flex-col gap-4 bg-default-50 px-4 lg:px-6 py-12 rounded-xl">
+            <Input
+              isRequired
+              isClearable
+              fullWidth
+              size="lg"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              type="text"
+              variant="bordered"
+              label="Website Link"
+              placeholder="Enter website link"
+            />
 
-              <div className="grid lg:grid-cols-3 gap-4">
-                <Button
-                  fullWidth
-                  isLoading={loading}
-                  type="submit"
-                  color="primary"
-                  size="lg"
-                >
-                  Generate
-                </Button>
-                <Button
-                  fullWidth
-                  onPress={handlePaste}
-                  color="secondary"
-                  size="lg"
-                >
-                  Paste
-                </Button>
-                <Button
-                  fullWidth
-                  onPress={handleReset}
-                  color="danger"
-                  size="lg"
-                >
-                  Reset
-                </Button>
-              </div>
+            <div className="grid lg:grid-cols-3 gap-4">
+              <Button
+                fullWidth
+                isLoading={loading}
+                onClick={handleGenerate}
+                color="primary"
+                size="lg"
+              >
+                Generate
+              </Button>
+              <Button
+                fullWidth
+                onPress={handlePaste}
+                color="secondary"
+                size="lg"
+              >
+                Paste
+              </Button>
+              <Button fullWidth onPress={handleReset} color="danger" size="lg">
+                Reset
+              </Button>
             </div>
-          </form>
+          </div>
 
           {error && (
             <div className="max-w-2xl w-full flex items-center justify-center py-6">
